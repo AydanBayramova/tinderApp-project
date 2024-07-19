@@ -121,7 +121,7 @@ public class UserService {
         user.setId(resultSet.getLong("id"));
         user.setName(resultSet.getString("name"));
         user.setSurname(resultSet.getString("surname"));
-        user.setSurname(resultSet.getString("user_name"));
+        user.setUserName(resultSet.getString("user_name"));
         user.setEmail(resultSet.getString("email"));
         user.setPhoneNumber(resultSet.getString("phone_number"));
         user.setPassword(resultSet.getString("password"));
