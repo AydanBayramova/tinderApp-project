@@ -5,54 +5,83 @@ import org.example.tinderapp.domain.entity.User;
 import org.example.tinderapp.exception.UserNotFoundException;
 import org.example.tinderapp.service.UserService;
 import org.example.tinderapp.utils.Utils;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
-@RestController
+@Controller
 @RequestMapping("/users")
 public class UserController {
     @Autowired
     private UserService userService;
 
-    @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> register(@RequestBody User user) throws SQLException {
-        User registeruser = userService.register(user.getName(), user.getSurname(), user.getUserName(), user.getEmail(), user.getPhoneNumber(), user.getPassword());
-
-        Map<String, Object> map = new HashMap<>();
-        map.put("Message", "Qeydiyyat uğurla başa çatdı");
-        return ResponseEntity.ok(map);
+    @GetMapping("/")
+    public String index(Model model) {
+        model.addAttribute("currentDate", LocalDate.now());
+        return "index";
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Login login) throws SQLException, UserNotFoundException {
-        String username = login.getUsername();
-        String password = login.getPassword();
+    @GetMapping("/login")
+    public String showLoginForm(Model model) {
+        model.addAttribute("login", new Login());
+        return "login";
+    }
 
-        boolean isAuthenticated = userService.login(username, password);
+    @GetMapping("/register")
+    public String showRegisterForm(Model model) {
+        model.addAttribute("user", new User());
+        return "register";
+    }
+
+    @PostMapping("/register")
+    public String register(@ModelAttribute User user, Model model) throws SQLException, UserNotFoundException {
+        userService.register(user.getName(), user.getSurname(), user.getUserName(), user.getEmail(), user.getPhoneNumber(), user.getPassword());
+
+        // Automatically log in the user after registration
+        Login login = new Login();
+        login.setUsername(user.getEmail());  // assuming email is used as username
+        login.setPassword(user.getPassword());
+
+        boolean isAuthenticated = userService.login(login.getUsername(), login.getPassword());
         if (isAuthenticated) {
             Utils.userId = userService.getUserId(login.getUsername(), login.getPassword());
-            return ResponseEntity.ok("Giriş uğurludur");
+            model.addAttribute("message", "Giriş uğurludur");
+            return "redirect:/profiles";  // redirect to the profiles page after login
         } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("İstifadəçi məlumatları yanlışdır");
+            model.addAttribute("message", "Giriş uğursuz oldu");
+            return "register";
         }
     }
 
-    @DeleteMapping("/delete/id")
-    public ResponseEntity<String> deleteUser(@PathVariable Long id) throws SQLException, UserNotFoundException {
-        userService.deleteUser(id);
-        return ResponseEntity.ok("İstifadəçi uğurla silindi");
+    @PostMapping("/login")
+    public String login(@ModelAttribute Login login, Model model) throws SQLException, UserNotFoundException {
+        boolean isAuthenticated = userService.login(login.getUsername(), login.getPassword());
+        if (isAuthenticated) {
+            Utils.userId = userService.getUserId(login.getUsername(), login.getPassword());
+            model.addAttribute("message", "Giriş uğurludur");
+            return "redirect:/profiles";
+        } else {
+            model.addAttribute("message", "İstifadəçi məlumatları yanlışdır");
+            return "login";
+        }
     }
+
+    @DeleteMapping("/delete/{id}")
+    public String deleteUser(@PathVariable Long id, Model model) throws SQLException, UserNotFoundException {
+        userService.deleteUser(id);
+        model.addAttribute("message", "İstifadəçi uğurla silindi");
+        return "index";
+    }
+
     @GetMapping("/getAll")
-    public ResponseEntity<List<User>> getAllUsers() throws SQLException, UserNotFoundException {
+    public String getAllUsers(Model model) throws SQLException, UserNotFoundException {
         List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+        model.addAttribute("users", users);
+        return "people-list";
     }
 }

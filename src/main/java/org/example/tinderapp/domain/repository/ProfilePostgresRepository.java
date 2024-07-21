@@ -4,35 +4,35 @@ import org.example.tinderapp.domain.ProfileDao;
 import org.example.tinderapp.domain.entity.ProfileEntity;
 import org.springframework.stereotype.Repository;
 
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @Repository
 public class ProfilePostgresRepository implements ProfileDao {
 
-    public ProfilePostgresRepository() {
-        createTables();
+    private final String JDBC_URL = "jdbc:postgresql://localhost:5433/postgres";
+    private final String JDBC_USERNAME = "postgres";
+    private final String JDBC_PASSWORD = "postgres";
+
+    private Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(JDBC_URL, JDBC_USERNAME, JDBC_PASSWORD);
     }
 
     private ProfileEntity mapRow(ResultSet rs) throws SQLException {
         ProfileEntity profile = new ProfileEntity();
         profile.setId(rs.getLong("id"));
         profile.setName(rs.getString("name"));
-        profile.setPhotoUrl(rs.getString("photo_url"));
-        profile.setLiked(rs.getBoolean("liked"));
-        profile.setUserId(rs.getLong("user_id"));
+        profile.setImageUrl(rs.getString("image_url"));
         return profile;
     }
 
     @Override
     public List<ProfileEntity> getAllProfiles() {
-        final String sql = "SELECT * FROM profiles WHERE liked = TRUE";
-        try (Connection connection = new PostgresDriver().getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            ResultSet rs = preparedStatement.executeQuery();
+        final String sql = "SELECT * FROM profiles";
+        try (Connection connection = getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery(sql)) {
             List<ProfileEntity> profiles = new ArrayList<>();
             while (rs.next()) {
                 profiles.add(mapRow(rs));
@@ -44,17 +44,17 @@ public class ProfilePostgresRepository implements ProfileDao {
     }
 
     @Override
-    public List<ProfileEntity> getLikedProfiles(Long userId) {
-        final String sql = "SELECT * FROM profiles WHERE liked = TRUE AND user_id = ?";
-        try (Connection connection = new PostgresDriver().getConnection();
+    public ProfileEntity getProfileById(Long id) {
+        final String sql = "SELECT * FROM profiles WHERE id = ?";
+        try (Connection connection = getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, userId);
+            preparedStatement.setLong(1, id);
             ResultSet rs = preparedStatement.executeQuery();
-            List<ProfileEntity> profiles = new ArrayList<>();
-            while (rs.next()) {
-                profiles.add(mapRow(rs));
+            if (rs.next()) {
+                return mapRow(rs);
+            } else {
+                throw new RuntimeException("Profile not found with id: " + id);
             }
-            return profiles;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -62,96 +62,12 @@ public class ProfilePostgresRepository implements ProfileDao {
 
     @Override
     public void saveProfile(ProfileEntity profile) {
-        final String sql = "INSERT INTO profiles (name, photo_url, liked, user_id) VALUES (?, ?, ?, ?)";
-        try (Connection connection = new PostgresDriver().getConnection();
+        final String sql = "INSERT INTO profiles (name, image_url) VALUES (?, ?)";
+        try (Connection connection = getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            connection.setAutoCommit(false);
             preparedStatement.setString(1, profile.getName());
-            preparedStatement.setString(2, profile.getPhotoUrl());
-            preparedStatement.setBoolean(3, profile.isLiked());
-            preparedStatement.setLong(4, profile.getUserId());
+            preparedStatement.setString(2, profile.getImageUrl());
             preparedStatement.executeUpdate();
-            connection.commit();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void updateProfile(ProfileEntity profile) {
-        final String sql = "UPDATE profiles SET name = ?, photo_url = ?, liked = ?, user_id = ? WHERE id = ?";
-        try (Connection connection = new PostgresDriver().getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            connection.setAutoCommit(false);
-            preparedStatement.setString(1, profile.getName());
-            preparedStatement.setString(2, profile.getPhotoUrl());
-            preparedStatement.setBoolean(3, profile.isLiked());
-            preparedStatement.setLong(4, profile.getUserId());
-            preparedStatement.setLong(5, profile.getId());
-            preparedStatement.executeUpdate();
-            connection.commit();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void deleteProfile(Long id) {
-        final String sql = "DELETE FROM profiles WHERE id = ?";
-        try (Connection connection = new PostgresDriver().getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            connection.setAutoCommit(false);
-            preparedStatement.setLong(1, id);
-            preparedStatement.executeUpdate();
-            connection.commit();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void saveLike(Long userId, Long profileId) {
-        final String sql = "INSERT INTO user_likes (user_id, profile_id) VALUES (?, ?)";
-        try (Connection connection = new PostgresDriver().getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            connection.setAutoCommit(false);
-            preparedStatement.setLong(1, userId);
-            preparedStatement.setLong(2, profileId);
-            preparedStatement.executeUpdate();
-            connection.commit();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void deleteLike(Long userId, Long profileId) {
-        final String sql = "DELETE FROM user_likes WHERE user_id = ? AND profile_id = ?";
-        try (Connection connection = new PostgresDriver().getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            connection.setAutoCommit(false);
-            preparedStatement.setLong(1, userId);
-            preparedStatement.setLong(2, profileId);
-            preparedStatement.executeUpdate();
-            connection.commit();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void createTables() {
-        try (Connection connection = new PostgresDriver().getConnection();
-             Statement statement = connection.createStatement()) {
-            statement.executeUpdate("CREATE TABLE IF NOT EXISTS profiles(" +
-                    "id BIGINT PRIMARY KEY," +
-                    "name VARCHAR(255)," +
-                    "photo_url VARCHAR(255)," +
-                    "liked BOOLEAN," +
-                    "user_id BIGINT)");
-            statement.executeUpdate("CREATE TABLE IF NOT EXISTS user_likes(" +
-                    "user_id BIGINT," +
-                    "profile_id BIGINT," +
-                    "PRIMARY KEY(user_id, profile_id))");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile List</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body style="background-color: #f5f5f5;">
+<div class="container">
+    <h1>Profile List</h1>
+    <div class="row" th:each="profile : ${profiles}">
+        <div class="col-4 offset-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 text-center">
+                            <img th:src="@{'https://robohash.org/' + ${profile.id} + '.png'}" alt="" class="mx-auto rounded-circle img-fluid">
+                            <h3 class="mb-0 text-truncated" th:text="${profile.name}">User name</h3>
+                            <br>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <form th:action="@{/profiles/unlikeProfile}" method="post">
+                                <input type="hidden" name="userId" th:value="${profile.userId}"/>
+                                <input type="hidden" name="profileId" th:value="${profile.id}"/>
+                                <button type="submit" class="btn btn-outline-danger btn-block"><span class="fa fa-times"></span> Dislike</button>
+                            </form>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <form th:action="@{/profiles/likeProfile}" method="post">
+                                <input type="hidden" name="userId" th:value="${profile.userId}"/>
+                                <input type="hidden" name="profileId" th:value="${profile.id}"/>
+                                <button type="submit" class="btn btn-outline-success btn-block"><span class="fa fa-heart"></span> Like</button>
+                            </form>
+                        </div>
+                        <!--/col-->
+                    </div>
+                    <!--/row-->
+                </div>
+                <!--/card-block-->
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

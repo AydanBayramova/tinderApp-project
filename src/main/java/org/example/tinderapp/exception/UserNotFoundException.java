@@ -1,5 +1,5 @@
 package org.example.tinderapp.exception;
 
 public class UserNotFoundException extends NoSuchFieldException {
-    public UserNotFoundException() {}
+    public UserNotFoundException(String s) {}
 }

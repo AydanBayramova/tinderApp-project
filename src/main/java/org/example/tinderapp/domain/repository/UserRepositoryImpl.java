@@ -1,8 +1,10 @@
 package org.example.tinderapp.domain.repository;
 
 import org.example.tinderapp.domain.entity.User;
+import org.example.tinderapp.domain.repository.UserRepository;
 import org.example.tinderapp.exception.UserNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -16,13 +18,14 @@ import java.util.Optional;
 public class UserRepositoryImpl implements UserRepository {
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
     public UserRepositoryImpl(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public User save(User user) {
-        String sql = "INSERT INTO users (name,surname,user_name,email,phoneNumber,password) VALUES (?,?,?,?,?,?)";
+        String sql = "INSERT INTO users (name, surname, user_name, email, phone_number, password) VALUES (?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql, user.getName(), user.getSurname(), user.getUserName(), user.getEmail(), user.getPhoneNumber(), user.getPassword());
         return user;
     }
@@ -35,37 +38,39 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public Long getUserId(String username, String password) throws UserNotFoundException{
+    public Long getUserId(String username, String password) throws UserNotFoundException {
         String sql = "SELECT id FROM users WHERE user_name=? AND password=?";
-        Long userId=jdbcTemplate.queryForObject(sql,new Object[]{username,password},Long.class);
-        return userId;
+        try {
+            return jdbcTemplate.queryForObject(sql, new Object[]{username, password}, Long.class);
+        } catch (EmptyResultDataAccessException e) {
+            throw new UserNotFoundException("User not found for username: " + username);
+        }
     }
 
     @Override
     public void deleteById(Long id) {
-    String sql = "DELETE FROM users WHERE id=?";
-    jdbcTemplate.update(sql,id);
+        String sql = "DELETE FROM users WHERE id=?";
+        jdbcTemplate.update(sql, id);
     }
 
     @Override
     public List<User> findAll() {
-        String qsql = "SELECT * FROM users";
-        return jdbcTemplate.query(qsql, new UserRowMapper());
+        String sql = "SELECT * FROM users";
+        return jdbcTemplate.query(sql, new UserRowMapper());
     }
 
     private static final class UserRowMapper implements RowMapper<User> {
         @Override
         public User mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new User(
-                    rs.getString("name"),
-                    rs.getString("surname"),
-                    rs.getString("user_name"),
-                    rs.getString("email"),
-                    rs.getString("phone_number"),
-                    rs.getString("password")
-            );
+            User user = new User();
+            user.setId(rs.getLong("id"));
+            user.setName(rs.getString("name"));
+            user.setSurname(rs.getString("surname"));
+            user.setUserName(rs.getString("user_name"));
+            user.setEmail(rs.getString("email"));
+            user.setPhoneNumber(rs.getString("phone_number"));
+            user.setPassword(rs.getString("password"));
+            return user;
         }
     }
-
 }
-

@@ -3,15 +3,14 @@ package org.example.tinderapp.controller;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-
-import java.time.LocalDate;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
+@RequestMapping("/home")
 public class HomeController {
 
-    @GetMapping("/")
-    public String index(Model model) {
-        model.addAttribute("currentDate", LocalDate.now());
-        return "index";
+    @GetMapping
+    public String showHomePage(Model model) {
+        return "home";
     }
 }

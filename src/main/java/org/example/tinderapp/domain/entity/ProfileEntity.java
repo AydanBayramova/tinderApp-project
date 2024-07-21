@@ -15,8 +15,7 @@ import lombok.ToString;
 @AllArgsConstructor
 public class ProfileEntity {
     private Long id;
-    private Long userId;
     private String name;
-    private String photoUrl;
-    private  boolean liked;
+    private String imageUrl;
+    private Long userId;
 }
